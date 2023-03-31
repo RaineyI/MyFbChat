@@ -9,4 +9,5 @@
     <color name="white">#FFFFFFFF</color>
     <color name="newOne">#492A75</color>
     <color name="newTwo">#8A51CC</color>
+    <color name="forMessages">#DDC3E1</color>
 </resources>
