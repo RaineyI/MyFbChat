@@ -5,6 +5,7 @@ import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.view.Menu
 import android.view.MenuItem
+import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.myfbchat.databinding.ActivityMainBinding
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.ktx.auth
@@ -19,6 +20,7 @@ import com.squareup.picasso.Picasso
 class MainActivity : AppCompatActivity() {
     lateinit var binding: ActivityMainBinding
     lateinit var auth: FirebaseAuth
+    lateinit var adapter: UserAdapter
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -29,13 +31,19 @@ class MainActivity : AppCompatActivity() {
 
         setUpActionBar()
         val database = Firebase.database
-        val myRef = database.getReference("message")
+        val myRef = database.getReference("messages")
         binding.bSend.setOnClickListener{
-            myRef.setValue(binding.editMessage.text.toString())
+            myRef.child(myRef.push().key ?: "error").setValue(User(binding.editMessage.text.toString(), auth.currentUser?.displayName))
         }
         //выбираем на каком пути будем прослушивать
         onChangeListener(myRef)
+        initRcView()
+    }
 
+    private fun initRcView () = with(binding) {
+        adapter = UserAdapter()
+        rcView.layoutManager = LinearLayoutManager(this@MainActivity)
+        rcView.adapter = adapter
     }
 
     //меню с выходом из аккаунта
@@ -56,15 +64,15 @@ class MainActivity : AppCompatActivity() {
     private fun onChangeListener(dRef: DatabaseReference) {
         dRef.addValueEventListener(object : ValueEventListener{
             override fun onDataChange(snapshot: DataSnapshot) {
-               //изменения происходят здесь
-                binding.apply {
-                    tvMessages.append("\n")
-                    tvMessages.append("${auth.currentUser?.displayName}: ${snapshot.value.toString()}")
+               val list = ArrayList<User>()
+                for (s in snapshot.children){
+                    val user = s.getValue(User::class.java)
+                    if(user != null) list.add(user)
                 }
+                adapter.submitList(list)
             }
             override fun onCancelled(error: DatabaseError) {
             }
-
         })
     }
 
@@ -79,8 +87,6 @@ class MainActivity : AppCompatActivity() {
                 actionBar?.setHomeAsUpIndicator(dIcon)
                 actionBar?.title = auth.currentUser?.displayName
             }
-
         }.start()
-
     }
 }
